@@ -81,7 +81,7 @@ local SpeedBox = Instance.new("TextBox")
 SpeedBox.Size = UDim2.new(1, -24, 0, 26)
 SpeedBox.Position = UDim2.new(0, 12, 0, 36)
 SpeedBox.BackgroundColor3 = Color3.fromRGB(245, 205, 48)
-SpeedBox.Text = "27"
+SpeedBox.Text = "30"
 SpeedBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 SpeedBox.TextSize = 14
 SpeedBox.Font = Enum.Font.Gotham
@@ -181,4 +181,3 @@ UserInputService.InputChanged:Connect(function(input)
 	if input == dragInput and dragging then
 		update(input)
 	end
-end)
