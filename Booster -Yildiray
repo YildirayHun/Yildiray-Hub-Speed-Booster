@@ -76,7 +76,7 @@ ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = player:WaitForChild("PlayerGui")
 
 local Main = Instance.new("Frame")
-Main.Size = UDim2.new(0, 160, 0, 180) -- Boyut Inf Jump için uzatıldı
+Main.Size = UDim2.new(0, 160, 0, 180) 
 Main.Position = UDim2.new(1, -170, 0.3, 0)
 Main.BackgroundColor3 = Color3.fromRGB(27, 42, 53)
 Main.BorderSizePixel = 0
@@ -84,9 +84,11 @@ Main.Active = true
 Main.Parent = ScreenGui
 
 Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 10)
+
+-- DIŞ ÇERÇEVE (ARTIK SARI) --
 local Stroke = Instance.new("UIStroke", Main)
 Stroke.Thickness = 2
-Stroke.Color = Color3.fromRGB(90, 170, 255)
+Stroke.Color = Color3.fromRGB(245, 205, 48) -- Parlak Sarı
 
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 30)
@@ -97,7 +99,7 @@ Title.TextSize = 14
 Title.Font = Enum.Font.GothamBold
 Title.Parent = Main
 
--- HIZ KONTROLÜ (SPEED SECTION) --
+-- HIZ KONTROLÜ --
 local SpeedLabel = Instance.new("TextLabel")
 SpeedLabel.Size = UDim2.new(1, 0, 0, 20)
 SpeedLabel.Position = UDim2.new(0, 0, 0, 30)
@@ -118,6 +120,11 @@ SpeedBox.Font = Enum.Font.Gotham
 SpeedBox.Parent = Main
 Instance.new("UICorner", SpeedBox).CornerRadius = UDim.new(0, 5)
 
+-- TEXTBOX ÇERÇEVESİ --
+local BoxStroke = Instance.new("UIStroke", SpeedBox)
+BoxStroke.Color = Color3.fromRGB(245, 205, 48)
+BoxStroke.Thickness = 1
+
 SpeedBox:GetPropertyChangedSignal("Text"):Connect(function()
 	SPEED = tonumber(SpeedBox.Text) or 30
 end)
@@ -132,7 +139,7 @@ SpeedToggle.Font = Enum.Font.GothamBold
 SpeedToggle.Parent = Main
 Instance.new("UICorner", SpeedToggle).CornerRadius = UDim.new(0, 5)
 
--- INF JUMP KONTROLÜ (INF JUMP SECTION) --
+-- INF JUMP KONTROLÜ --
 local JumpLabel = Instance.new("TextLabel")
 JumpLabel.Size = UDim2.new(1, 0, 0, 20)
 JumpLabel.Position = UDim2.new(0, 0, 0, 110)
@@ -153,7 +160,7 @@ JumpToggle.Font = Enum.Font.GothamBold
 JumpToggle.Parent = Main
 Instance.new("UICorner", JumpToggle).CornerRadius = UDim.new(0, 5)
 
---- FONKSİYONLARI TETİKLEME ---
+--- FONKSİYONLAR ---
 
 local function toggleSpeed()
     speedEnabled = not speedEnabled
@@ -171,7 +178,7 @@ end
 SpeedToggle.MouseButton1Click:Connect(toggleSpeed)
 JumpToggle.MouseButton1Click:Connect(toggleJump)
 
--- KLAVYE TUŞLARI --
+-- KLAVYE KISAYOLLARI --
 UserInputService.InputBegan:Connect(function(input, gpe)
     if gpe then return end
     if input.KeyCode == Enum.KeyCode.E then
@@ -181,7 +188,7 @@ UserInputService.InputBegan:Connect(function(input, gpe)
     end
 end)
 
--- SÜRÜKLEME SİSTEMİ --
+-- SÜRÜKLEME --
 local dragging, dragInput, dragStart, startPos
 Main.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
