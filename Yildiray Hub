@@ -6,7 +6,7 @@ local UserInputService = game:GetService("UserInputService") -- Eklendi
 local player = Players.LocalPlayer
 
 local enabled = false
-local SPEED = 27
+local SPEED = 30
 local speedConn
 
 local function getChar()
