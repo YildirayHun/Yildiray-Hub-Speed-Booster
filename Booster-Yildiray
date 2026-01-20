@@ -9,53 +9,162 @@ local player = Players.LocalPlayer
 local speedEnabled = false
 local SPEED = 30
 local speedConn
-
 local infJumpEnabled = false
 local jumpForce = 50
 local clampFallSpeed = 80
 
--- YARDIMCI FONKSİYONLAR --
+-- ESKİ UI TEMİZLEME --
+pcall(function()
+    if game.CoreGui:FindFirstChild("YildirayBooster_Modern") then
+        game.CoreGui.YildirayBooster_Modern:Destroy()
+    end
+end)
+
+-- ANA GUI --
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "YildirayBooster_Modern"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = game.CoreGui
+
+local Main = Instance.new("Frame")
+Main.Size = UDim2.new(0, 200, 0, 220) 
+Main.Position = UDim2.new(0.05, 0, 0.4, 0)
+Main.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Main.BorderSizePixel = 0
+Main.Active = true
+Main.Draggable = true
+Main.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner", Main)
+UICorner.CornerRadius = UDim.new(0, 12)
+
+local Stroke = Instance.new("UIStroke", Main)
+Stroke.Thickness = 2
+Stroke.Color = Color3.fromRGB(255, 215, 0)
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundTransparency = 1
+Title.Text = "YILDIRAY BOOSTER ⚡"
+Title.TextColor3 = Color3.fromRGB(255, 215, 0)
+Title.TextSize = 14
+Title.Font = Enum.Font.GothamBold
+Title.Parent = Main
+
+-- HIZ TEXTBOX --
+local SpeedBox = Instance.new("TextBox")
+SpeedBox.Size = UDim2.new(0, 160, 0, 30)
+SpeedBox.Position = UDim2.new(0.5, -80, 0, 45)
+SpeedBox.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+SpeedBox.Text = "30"
+SpeedBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+SpeedBox.Font = Enum.Font.Gotham
+SpeedBox.Parent = Main
+Instance.new("UICorner", SpeedBox).CornerRadius = UDim.new(0, 6)
+Instance.new("UIStroke", SpeedBox).Color = Color3.fromRGB(60, 60, 60)
+
+SpeedBox:GetPropertyChangedSignal("Text"):Connect(function()
+    SPEED = tonumber(SpeedBox.Text) or 30
+end)
+
+-- MODERN TOGGLE FONKSİYONU --
+local function createModernToggle(name, yPos, keyBind)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 160, 0, 40)
+    btn.Position = UDim2.new(0.5, -80, 0, yPos)
+    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    btn.Text = ""
+    btn.AutoButtonColor = false
+    btn.Parent = Main
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+    local bStroke = Instance.new("UIStroke", btn)
+    bStroke.Color = Color3.fromRGB(50, 50, 50)
+    bStroke.Thickness = 1
+
+    local label = Instance.new("TextLabel", btn)
+    label.Size = UDim2.new(1, -10, 1, 0)
+    label.Position = UDim2.new(0, 10, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = name .. " (" .. keyBind .. ")"
+    label.TextColor3 = Color3.fromRGB(200, 200, 200)
+    label.TextSize = 12
+    label.Font = Enum.Font.GothamBold
+    label.TextXAlignment = Enum.TextXAlignment.Left
+
+    local statusIndicator = Instance.new("Frame", btn)
+    statusIndicator.Size = UDim2.new(0, 4, 1, -12)
+    statusIndicator.Position = UDim2.new(1, -10, 0, 6)
+    statusIndicator.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    Instance.new("UICorner", statusIndicator)
+
+    local active = false
+    local function updateVisuals()
+        TweenService:Create(statusIndicator, TweenInfo.new(0.3), {
+            BackgroundColor3 = active and Color3.fromRGB(255, 215, 0) or Color3.fromRGB(200, 50, 50)
+        }):Play()
+        TweenService:Create(bStroke, TweenInfo.new(0.3), {
+            Color = active and Color3.fromRGB(255, 215, 0) or Color3.fromRGB(50, 50, 50)
+        }):Play()
+        label.TextColor3 = active and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(200, 200, 200)
+    end
+
+    return btn, function(newState)
+        if newState ~= nil then active = newState else active = not active end
+        updateVisuals()
+        return active
+    end
+end
+
+local SpeedBtn, toggleSpeedState = createModernToggle("Hız", 85, "R")
+local JumpBtn, toggleJumpState = createModernToggle("Inf Jump", 135, "F")
+
+-- SİSTEMLER --
 local function getChar()
-	local c = player.Character or player.CharacterAdded:Wait()
-	local hrp = c:WaitForChild("HumanoidRootPart")
-	local hum = c:FindFirstChildWhichIsA("Humanoid")
-	return c, hrp, hum
+    local c = player.Character
+    if not c then return end
+    local hrp = c:FindFirstChild("HumanoidRootPart")
+    local hum = c:FindFirstChildOfClass("Humanoid")
+    return c, hrp, hum
 end
 
-local function getMoveDir()
-	local _, _, hum = getChar()
-	local move = hum.MoveDirection
-	return move.Magnitude > 0.1 and move.Unit or Vector3.zero
+local function handleSpeed()
+    if speedConn then speedConn:Disconnect() speedConn = nil end
+    if speedEnabled then
+        speedConn = RunService.Heartbeat:Connect(function()
+            local _, hrp, hum = getChar()
+            if hrp and hum and hum.MoveDirection.Magnitude > 0.1 then
+                local dir = hum.MoveDirection.Unit
+                hrp.AssemblyLinearVelocity = Vector3.new(dir.X * SPEED, hrp.AssemblyLinearVelocity.Y, dir.Z * SPEED)
+            end
+        end)
+    end
 end
 
--- HIZ SİSTEMİ (SPEED) --
-local function startSpeed()
-	if speedConn then return end
-	speedConn = RunService.Heartbeat:Connect(function()
-		local _, hrp, hum = getChar()
-		if not hrp or not hum then return end
-		local dir = getMoveDir()
-		if dir.Magnitude > 0 then
-			hrp.AssemblyLinearVelocity = Vector3.new(
-				dir.X * SPEED,
-				hrp.AssemblyLinearVelocity.Y,
-				dir.Z * SPEED
-			)
-		end
-	end)
-end
+-- TIKLAMA OLAYLARI --
+SpeedBtn.MouseButton1Click:Connect(function()
+    speedEnabled = toggleSpeedState()
+    handleSpeed()
+end)
 
-local function stopSpeed()
-	if speedConn then
-		speedConn:Disconnect()
-		speedConn = nil
-	end
-end
+JumpBtn.MouseButton1Click:Connect(function()
+    infJumpEnabled = toggleJumpState()
+end)
 
--- ZIPLAMA SİSTEMİ (INF JUMP) --
+-- TUŞ KONTROLLERİ --
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if input.KeyCode == Enum.KeyCode.R then
+        speedEnabled = toggleSpeedState()
+        handleSpeed()
+    elseif input.KeyCode == Enum.KeyCode.F then
+        infJumpEnabled = toggleJumpState()
+    end
+end)
+
+-- INF JUMP DÖNGÜSÜ --
 RunService.Heartbeat:Connect(function()
     if not infJumpEnabled then return end
-    local char, hrp = getChar()
+    local _, hrp = getChar()
     if hrp and hrp.Velocity.Y < -clampFallSpeed then
         hrp.Velocity = Vector3.new(hrp.Velocity.X, -clampFallSpeed, hrp.Velocity.Z)
     end
@@ -63,146 +172,16 @@ end)
 
 UserInputService.JumpRequest:Connect(function()
     if not infJumpEnabled then return end
-    local char, hrp = getChar()
-    if hrp then
-        hrp.Velocity = Vector3.new(hrp.Velocity.X, jumpForce, hrp.Velocity.Z)
-    end
+    local _, hrp = getChar()
+    if hrp then hrp.Velocity = Vector3.new(hrp.Velocity.X, jumpForce, hrp.Velocity.Z) end
 end)
 
--- GUI OLUŞTURMA --
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "YildirayHub"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = player:WaitForChild("PlayerGui")
-
-local Main = Instance.new("Frame")
-Main.Size = UDim2.new(0, 160, 0, 180) 
-Main.Position = UDim2.new(1, -170, 0.3, 0)
-Main.BackgroundColor3 = Color3.fromRGB(27, 42, 53)
-Main.BorderSizePixel = 0
-Main.Active = true
-Main.Parent = ScreenGui
-
-Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 10)
-
--- DIŞ ÇERÇEVE (ARTIK SARI) --
-local Stroke = Instance.new("UIStroke", Main)
-Stroke.Thickness = 2
-Stroke.Color = Color3.fromRGB(245, 205, 48) -- Parlak Sarı
-
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0, 30)
-Title.BackgroundTransparency = 1
-Title.Text = "Yildiray Booster"
-Title.TextColor3 = Color3.fromRGB(245, 205, 48)
-Title.TextSize = 14
-Title.Font = Enum.Font.GothamBold
-Title.Parent = Main
-
--- HIZ KONTROLÜ --
-local SpeedLabel = Instance.new("TextLabel")
-SpeedLabel.Size = UDim2.new(1, 0, 0, 20)
-SpeedLabel.Position = UDim2.new(0, 0, 0, 30)
-SpeedLabel.BackgroundTransparency = 1
-SpeedLabel.Text = "Hız (R Tuşu)"
-SpeedLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-SpeedLabel.TextSize = 10
-SpeedLabel.Font = Enum.Font.Gotham
-SpeedLabel.Parent = Main
-
-local SpeedBox = Instance.new("TextBox")
-SpeedBox.Size = UDim2.new(0, 120, 0, 25)
-SpeedBox.Position = UDim2.new(0.5, -60, 0, 50)
-SpeedBox.BackgroundColor3 = Color3.fromRGB(40, 60, 80)
-SpeedBox.Text = "30"
-SpeedBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-SpeedBox.Font = Enum.Font.Gotham
-SpeedBox.Parent = Main
-Instance.new("UICorner", SpeedBox).CornerRadius = UDim.new(0, 5)
-
--- TEXTBOX ÇERÇEVESİ --
-local BoxStroke = Instance.new("UIStroke", SpeedBox)
-BoxStroke.Color = Color3.fromRGB(245, 205, 48)
-BoxStroke.Thickness = 1
-
-SpeedBox:GetPropertyChangedSignal("Text"):Connect(function()
-	SPEED = tonumber(SpeedBox.Text) or 30
-end)
-
-local SpeedToggle = Instance.new("TextButton")
-SpeedToggle.Size = UDim2.new(0, 120, 0, 25)
-SpeedToggle.Position = UDim2.new(0.5, -60, 0, 80)
-SpeedToggle.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-SpeedToggle.Text = "Speed: KAPALI"
-SpeedToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
-SpeedToggle.Font = Enum.Font.GothamBold
-SpeedToggle.Parent = Main
-Instance.new("UICorner", SpeedToggle).CornerRadius = UDim.new(0, 5)
-
--- INF JUMP KONTROLÜ --
-local JumpLabel = Instance.new("TextLabel")
-JumpLabel.Size = UDim2.new(1, 0, 0, 20)
-JumpLabel.Position = UDim2.new(0, 0, 0, 110)
-JumpLabel.BackgroundTransparency = 1
-JumpLabel.Text = "Zıplama (F Tuşu)"
-JumpLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-JumpLabel.TextSize = 10
-JumpLabel.Font = Enum.Font.Gotham
-JumpLabel.Parent = Main
-
-local JumpToggle = Instance.new("TextButton")
-JumpToggle.Size = UDim2.new(0, 120, 0, 25)
-JumpToggle.Position = UDim2.new(0.5, -60, 0, 130)
-JumpToggle.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-JumpToggle.Text = "Inf Jump: KAPALI"
-JumpToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
-JumpToggle.Font = Enum.Font.GothamBold
-JumpToggle.Parent = Main
-Instance.new("UICorner", JumpToggle).CornerRadius = UDim.new(0, 5)
-
---- FONKSİYONLAR ---
-
-local function toggleSpeed()
-    speedEnabled = not speedEnabled
-    SpeedToggle.Text = speedEnabled and "Speed: AÇIK" or "Speed: KAPALI"
-    SpeedToggle.BackgroundColor3 = speedEnabled and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(200, 50, 50)
-    if speedEnabled then startSpeed() else stopSpeed() end
-end
-
-local function toggleJump()
-    infJumpEnabled = not infJumpEnabled
-    JumpToggle.Text = infJumpEnabled and "Inf Jump: AÇIK" or "Inf Jump: KAPALI"
-    JumpToggle.BackgroundColor3 = infJumpEnabled and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(200, 50, 50)
-end
-
-SpeedToggle.MouseButton1Click:Connect(toggleSpeed)
-JumpToggle.MouseButton1Click:Connect(toggleJump)
-
--- KLAVYE KISAYOLLARI --
-UserInputService.InputBegan:Connect(function(input, gpe)
-    if gpe then return end
-    if input.KeyCode == Enum.KeyCode.R then
-        toggleSpeed()
-    elseif input.KeyCode == Enum.KeyCode.F then
-        toggleJump()
-    end
-end)
-
--- SÜRÜKLEME --
-local dragging, dragInput, dragStart, startPos
-Main.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		dragging = true
-		dragStart = input.Position
-		startPos = Main.Position
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then dragging = false end
-		end)
-	end
-end)
-UserInputService.InputChanged:Connect(function(input)
-	if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-		local delta = input.Position - dragStart
-		Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-	end
-end)
+-- ALT BİLGİ --
+local Info = Instance.new("TextLabel", Main)
+Info.Size = UDim2.new(1, 0, 0, 20)
+Info.Position = UDim2.new(0, 0, 1, -25)
+Info.BackgroundTransparency = 1
+Info.Text = "Yildiray Hub Edition"
+Info.TextColor3 = Color3.fromRGB(100, 100, 100)
+Info.TextSize = 10
+Info.Font = Enum.Font.Gotham
