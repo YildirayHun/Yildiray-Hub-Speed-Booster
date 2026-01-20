@@ -2,186 +2,168 @@ local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-
 local player = Players.LocalPlayer
 
 -- AYARLAR --
 local speedEnabled = false
 local SPEED = 30
-local speedConn
 local infJumpEnabled = false
 local jumpForce = 50
-local clampFallSpeed = 80
 
 -- ESKİ UI TEMİZLEME --
 pcall(function()
-    if game.CoreGui:FindFirstChild("YildirayBooster_Modern") then
-        game.CoreGui.YildirayBooster_Modern:Destroy()
+    if game.CoreGui:FindFirstChild("Yildiray_Premium_UI") then
+        game.CoreGui.Yildiray_Premium_UI:Destroy()
     end
 end)
 
--- ANA GUI --
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "YildirayBooster_Modern"
-ScreenGui.ResetOnSpawn = false
+ScreenGui.Name = "Yildiray_Premium_UI"
 ScreenGui.Parent = game.CoreGui
+ScreenGui.ResetOnSpawn = false
 
+---------------------------------------------------------
+-- SAĞ ALT PREMİUM BİLDİRİM SİSTEMİ
+---------------------------------------------------------
+local function showNotification()
+    local NotifyFrame = Instance.new("Frame")
+    NotifyFrame.Size = UDim2.new(0, 220, 0, 60)
+    NotifyFrame.Position = UDim2.new(1, 30, 0.85, 0) -- Ekranın dışından başla
+    NotifyFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    NotifyFrame.BorderSizePixel = 0
+    NotifyFrame.Parent = ScreenGui
+    Instance.new("UICorner", NotifyFrame).CornerRadius = UDim.new(0, 10)
+    
+    local NStroke = Instance.new("UIStroke", NotifyFrame)
+    NStroke.Color = Color3.fromRGB(255, 215, 0)
+    NStroke.Thickness = 2
+    
+    local NTitle = Instance.new("TextLabel")
+    NTitle.Size = UDim2.new(1, 0, 1, 0)
+    NTitle.BackgroundTransparency = 1
+    NTitle.Text = "✨Yildiray Hub Premium✨"
+    NTitle.TextColor3 = Color3.fromRGB(255, 215, 0)
+    NTitle.TextSize = 16
+    NTitle.Font = Enum.Font.GothamBold
+    NTitle.Parent = NotifyFrame
+
+    -- Kayarak Gelme
+    NotifyFrame:TweenPosition(UDim2.new(0.98, -220, 0.85, 0), "Out", "Back", 0.6, true)
+    
+    -- 5 Saniye Sonra Kayarak Gitme
+    task.delay(5, function()
+        NotifyFrame:TweenPosition(UDim2.new(1, 30, 0.85, 0), "In", "Quad", 0.6, true, function()
+            NotifyFrame:Destroy()
+        end)
+    end)
+end
+
+showNotification()
+
+---------------------------------------------------------
+-- ANA BOOSTER PANELİ (SOL TARAF)
+---------------------------------------------------------
 local Main = Instance.new("Frame")
-Main.Size = UDim2.new(0, 200, 0, 220) 
+Main.Size = UDim2.new(0, 220, 0, 200)
 Main.Position = UDim2.new(0.05, 0, 0.4, 0)
 Main.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 Main.BorderSizePixel = 0
 Main.Active = true
 Main.Draggable = true
 Main.Parent = ScreenGui
-
-local UICorner = Instance.new("UICorner", Main)
-UICorner.CornerRadius = UDim.new(0, 12)
-
-local Stroke = Instance.new("UIStroke", Main)
-Stroke.Thickness = 2
-Stroke.Color = Color3.fromRGB(255, 215, 0)
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 12)
+local MainStroke = Instance.new("UIStroke", Main)
+MainStroke.Color = Color3.fromRGB(255, 215, 0)
+MainStroke.Thickness = 2
 
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.BackgroundTransparency = 1
-Title.Text = "YILDIRAY BOOSTER ⚡"
+Title.Size = UDim2.new(1, 0, 0, 45)
+Title.Text = "⚡ YILDIRAY BOOSTER ⚡"
 Title.TextColor3 = Color3.fromRGB(255, 215, 0)
-Title.TextSize = 14
+Title.TextSize = 15
 Title.Font = Enum.Font.GothamBold
+Title.BackgroundTransparency = 1
 Title.Parent = Main
 
--- HIZ TEXTBOX --
 local SpeedBox = Instance.new("TextBox")
-SpeedBox.Size = UDim2.new(0, 160, 0, 30)
-SpeedBox.Position = UDim2.new(0.5, -80, 0, 45)
+SpeedBox.Size = UDim2.new(0, 180, 0, 30)
+SpeedBox.Position = UDim2.new(0.5, -90, 0, 50)
 SpeedBox.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-SpeedBox.Text = "30"
+SpeedBox.Text = "50"
 SpeedBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 SpeedBox.Font = Enum.Font.Gotham
 SpeedBox.Parent = Main
 Instance.new("UICorner", SpeedBox).CornerRadius = UDim.new(0, 6)
-Instance.new("UIStroke", SpeedBox).Color = Color3.fromRGB(60, 60, 60)
 
 SpeedBox:GetPropertyChangedSignal("Text"):Connect(function()
-    SPEED = tonumber(SpeedBox.Text) or 30
+    SPEED = tonumber(SpeedBox.Text) or 16
 end)
 
--- MODERN TOGGLE FONKSİYONU --
-local function createModernToggle(name, yPos, keyBind)
+-- TOGGLE YAPICI
+local function createToggle(name, yPos, key)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 160, 0, 40)
-    btn.Position = UDim2.new(0.5, -80, 0, yPos)
+    btn.Size = UDim2.new(0, 180, 0, 40)
+    btn.Position = UDim2.new(0.5, -90, 0, yPos)
     btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    btn.Text = ""
-    btn.AutoButtonColor = false
+    btn.Text = name .. " [" .. key .. "]: OFF"
+    btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 12
     btn.Parent = Main
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+    Instance.new("UICorner", btn)
     local bStroke = Instance.new("UIStroke", btn)
-    bStroke.Color = Color3.fromRGB(50, 50, 50)
-    bStroke.Thickness = 1
-
-    local label = Instance.new("TextLabel", btn)
-    label.Size = UDim2.new(1, -10, 1, 0)
-    label.Position = UDim2.new(0, 10, 0, 0)
-    label.BackgroundTransparency = 1
-    label.Text = name .. " (" .. keyBind .. ")"
-    label.TextColor3 = Color3.fromRGB(200, 200, 200)
-    label.TextSize = 12
-    label.Font = Enum.Font.GothamBold
-    label.TextXAlignment = Enum.TextXAlignment.Left
-
-    local statusIndicator = Instance.new("Frame", btn)
-    statusIndicator.Size = UDim2.new(0, 4, 1, -12)
-    statusIndicator.Position = UDim2.new(1, -10, 0, 6)
-    statusIndicator.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-    Instance.new("UICorner", statusIndicator)
+    bStroke.Color = Color3.fromRGB(60, 60, 60)
 
     local active = false
-    local function updateVisuals()
-        TweenService:Create(statusIndicator, TweenInfo.new(0.3), {
-            BackgroundColor3 = active and Color3.fromRGB(255, 215, 0) or Color3.fromRGB(200, 50, 50)
-        }):Play()
-        TweenService:Create(bStroke, TweenInfo.new(0.3), {
-            Color = active and Color3.fromRGB(255, 215, 0) or Color3.fromRGB(50, 50, 50)
-        }):Play()
-        label.TextColor3 = active and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(200, 200, 200)
+    local function update()
+        bStroke.Color = active and Color3.fromRGB(255, 215, 0) or Color3.fromRGB(60, 60, 60)
+        btn.TextColor3 = active and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(200, 200, 200)
+        btn.Text = name .. " [" .. key .. "]: " .. (active and "ON" or "OFF")
     end
 
-    return btn, function(newState)
-        if newState ~= nil then active = newState else active = not active end
-        updateVisuals()
+    return btn, function(state)
+        if state ~= nil then active = state else active = not active end
+        update()
         return active
     end
 end
 
-local SpeedBtn, toggleSpeedState = createModernToggle("Hız", 85, "R")
-local JumpBtn, toggleJumpState = createModernToggle("Inf Jump", 135, "F")
+local SpeedBtn, updateSpeedState = createToggle("SPEED", 95, "R")
+local JumpBtn, updateJumpState = createToggle("INF JUMP", 145, "F")
 
--- SİSTEMLER --
-local function getChar()
-    local c = player.Character
-    if not c then return end
-    local hrp = c:FindFirstChild("HumanoidRootPart")
-    local hum = c:FindFirstChildOfClass("Humanoid")
-    return c, hrp, hum
-end
-
-local function handleSpeed()
-    if speedConn then speedConn:Disconnect() speedConn = nil end
-    if speedEnabled then
-        speedConn = RunService.Heartbeat:Connect(function()
-            local _, hrp, hum = getChar()
-            if hrp and hum and hum.MoveDirection.Magnitude > 0.1 then
-                local dir = hum.MoveDirection.Unit
-                hrp.AssemblyLinearVelocity = Vector3.new(dir.X * SPEED, hrp.AssemblyLinearVelocity.Y, dir.Z * SPEED)
-            end
-        end)
-    end
-end
-
--- TIKLAMA OLAYLARI --
-SpeedBtn.MouseButton1Click:Connect(function()
-    speedEnabled = toggleSpeedState()
-    handleSpeed()
-end)
-
-JumpBtn.MouseButton1Click:Connect(function()
-    infJumpEnabled = toggleJumpState()
-end)
-
--- TUŞ KONTROLLERİ --
+-- FONKSİYONLAR
 UserInputService.InputBegan:Connect(function(input, gpe)
     if gpe then return end
     if input.KeyCode == Enum.KeyCode.R then
-        speedEnabled = toggleSpeedState()
-        handleSpeed()
+        speedEnabled = updateSpeedState()
     elseif input.KeyCode == Enum.KeyCode.F then
-        infJumpEnabled = toggleJumpState()
+        infJumpEnabled = updateJumpState()
     end
 end)
 
--- INF JUMP DÖNGÜSÜ --
+SpeedBtn.MouseButton1Click:Connect(function() speedEnabled = updateSpeedState() end)
+JumpBtn.MouseButton1Click:Connect(function() infJumpEnabled = updateJumpState() end)
+
 RunService.Heartbeat:Connect(function()
-    if not infJumpEnabled then return end
-    local _, hrp = getChar()
-    if hrp and hrp.Velocity.Y < -clampFallSpeed then
-        hrp.Velocity = Vector3.new(hrp.Velocity.X, -clampFallSpeed, hrp.Velocity.Z)
+    if speedEnabled then
+        local char = player.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        local hum = char and char:FindFirstChild("Humanoid")
+        if hrp and hum and hum.MoveDirection.Magnitude > 0 then
+            hrp.AssemblyLinearVelocity = Vector3.new(hum.MoveDirection.X * SPEED, hrp.AssemblyLinearVelocity.Y, hum.MoveDirection.Z * SPEED)
+        end
     end
 end)
 
 UserInputService.JumpRequest:Connect(function()
-    if not infJumpEnabled then return end
-    local _, hrp = getChar()
-    if hrp then hrp.Velocity = Vector3.new(hrp.Velocity.X, jumpForce, hrp.Velocity.Z) end
+    if infJumpEnabled then
+        local char = player.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if hum and hrp then
+            hrp.Velocity = Vector3.new(hrp.Velocity.X, jumpForce, hrp.Velocity.Z)
+        end
+    end
 end)
 
--- ALT BİLGİ --
-local Info = Instance.new("TextLabel", Main)
-Info.Size = UDim2.new(1, 0, 0, 20)
-Info.Position = UDim2.new(0, 0, 1, -25)
-Info.BackgroundTransparency = 1
-Info.Text = "Yildiray Hub Edition"
-Info.TextColor3 = Color3.fromRGB(100, 100, 100)
-Info.TextSize = 10
-Info.Font = Enum.Font.Gotham
+print("🚀 Yildiray Hub Premium Aktif!")
